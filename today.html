@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today's Schedule · Tutor Dashboard</title>
+    <!-- Axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 2rem;
+        }
+
+        /* main container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* header */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: white;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .date-badge {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 50px;
+            display: inline-block;
+            font-size: 1.3rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            margin-bottom: 1rem;
+        }
+
+        .day-badge {
+            background: white;
+            color: #f5576c;
+            padding: 0.5rem 2rem;
+            border-radius: 50px;
+            display: inline-block;
+            font-size: 1.5rem;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* navigation */
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-link.active {
+            background: white;
+            color: #f5576c;
+            font-weight: 600;
+        }
+
+        /* loading spinner */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        /* today's schedule card */
+        .today-card {
+            background: white;
+            border-radius: 30px;
+            padding: 2rem;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .today-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 3px solid #f0f0f0;
+        }
+
+        .today-icon {
+            font-size: 3rem;
+        }
+
+        .today-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .today-count {
+            margin-left: auto;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* timeline */
+        .timeline {
+            position: relative;
+            padding-left: 3rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #f093fb, #f5576c);
+            border-radius: 3px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -2.4rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 4px solid #f5576c;
+            border-radius: 50%;
+            z-index: 1;
+            box-shadow: 0 0 0 4px rgba(245, 87, 108, 0.2);
+        }
+
+        .timeline-content {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            border-left: 5px solid #f5576c;
+        }
+
+        .timeline-content:hover {
+            transform: translateX(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .timeline-time {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #f5576c;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-time i {
+            font-style: normal;
+            background: #f5576c;
+            color: white;
+            padding: 0.2rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 1rem;
+        }
+
+        .timeline-subject {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-name {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .timeline-name::before {
+            content: "👤";
+            font-size: 1.2rem;
+        }
+
+        /* empty state */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-text {
+            color: #999;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .add-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            text-decoration: none;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
+        }
+
+        /* stats cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+
+        /* error message */
+        .error-container {
+            background: rgba(255, 99, 99, 0.9);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            color: white;
+            margin: 2rem 0;
+        }
+
+        .retry-btn {
+            background: white;
+            color: #ff5757;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* footer */
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Today's Schedule</h1>
+            <div class="date-badge" id="currentDate"></div>
+            <div class="day-badge" id="currentDay"></div>
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">🏠 Home</a>
+            <a href="add.html" class="nav-link">➕ Add Tutor</a>
+            <a href="see.html" class="nav-link">📋 Full Schedule</a>
+            <a href="today.html" class="nav-link active">⭐ Today</a>
+            <a href="tutors.html" class="nav-link">👥 All Tutors</a>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Fetching today's schedule...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error-container" style="display: none;">
+            <h3>⚠️ Failed to Load Schedule</h3>
+            <p id="errorMessage">Could not connect to the server.</p>
+            <button class="retry-btn" onclick="fetchTodaySchedule()">🔄 Try Again</button>
+        </div>
+
+        <!-- Today's Schedule -->
+        <div id="scheduleContainer" style="display: none;">
+            <div class="today-card" id="todayCard">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalToday">0</div>
+                    <div class="stat-label">Sessions Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="firstSession">-</div>
+                    <div class="stat-label">First Session</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="lastSession">-</div>
+                    <div class="stat-label">Last Session</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalHours">0</div>
+                    <div class="stat-label">Total Hours</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>✨ Automatically updates every 30 seconds</p>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:5000';
+
+        // Format time function
+        function formatTime(timeStr) {
+            if (!timeStr) return 'TBD';
+            return timeStr;
+        }
+
+        // Calculate hours difference
+        function calculateHours(from, to) {
+            if (!from || !to) return 0;
+            
+            // Simple parsing for demo - in production use proper time library
+            const fromMatch = from.match(/(\d+)(?::(\d+))?\s*(AM|PM)/i);
+            const toMatch = to.match(/(\d+)(?::(\d+))?\s*(AM|PM)/i);
+            
+            if (!fromMatch || !toMatch) return 1; // Default to 1 hour if parsing fails
+            
+            return 1; // Simplified for demo
+        }
+
+        // Update date and day display
+        function updateDateDisplay() {
+            const now = new Date();
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            const dayName = days[now.getDay()];
+            const monthName = months[now.getMonth()];
+            const date = now.getDate();
+            const year = now.getFullYear();
+            
+            document.getElementById('currentDate').innerHTML = `${monthName} ${date}, ${year}`;
+            document.getElementById('currentDay').innerHTML = dayName;
+            
+            return dayName;
+        }
+
+        // Fetch today's schedule
+        async function fetchTodaySchedule() {
+            // Show loading, hide error and schedule
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('scheduleContainer').style.display = 'none';
+
+            try {
+                // Fetch today's schedule from backend
+                const response = await axios.get(`${BASE_URL}/api/get-today`);
+                
+                console.log('Today\'s schedule:', response.data);
+                
+                if (response.data && response.data.schedule) {
+                    displayTodaySchedule(response.data.schedule, response.data.message);
+                    updateTodayStats(response.data.schedule);
+                } else {
+                    displayTodaySchedule([], 'No schedule for today');
+                }
+
+            } catch (error) {
+                console.error('Error fetching today\'s schedule:', error);
+                
+                // Show error message
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                
+                let errorMsg = 'Could not connect to the server.';
+                if (error.response) {
+                    errorMsg = error.response.data.message || `Server error: ${error.response.status}`;
+                } else if (error.request) {
+                    errorMsg = 'No response from server. Make sure backend is running on port 5000.';
+                } else {
+                    errorMsg = error.message;
+                }
+                
+                document.getElementById('errorMessage').textContent = errorMsg;
+            }
+        }
+
+        // Display today's schedule
+        function displayTodaySchedule(schedule, message) {
+            const todayCard = document.getElementById('todayCard');
+            const todayName = updateDateDisplay();
+            
+            if (!schedule || schedule.length === 0) {
+                // Show empty state
+                todayCard.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📅</div>
+                        <div class="empty-title">No Sessions Today</div>
+                        <div class="empty-text">There are no tutoring sessions scheduled for ${todayName}.</div>
+                        <a href="add.html" class="add-btn">➕ Add a Tutor</a>
+                    </div>
+                `;
+            } else {
+                // Sort schedule by time
+                const sortedSchedule = [...schedule].sort((a, b) => {
+                    return (a.hourFrom || '').localeCompare(b.hourFrom || '');
+                });
+
+                // Build timeline items
+                const timelineItems = sortedSchedule.map((tutor, index) => `
+                    <div class="timeline-item" style="animation-delay: ${index * 0.1}s">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-time">
+                                ${formatTime(tutor.hourFrom)} - ${formatTime(tutor.hourTo)}
+                                <i>${calculateHours(tutor.hourFrom, tutor.hourTo)} hour</i>
+                            </div>
+                            <div class="timeline-subject">${escapeHtml(tutor.subject)}</div>
+                            <div class="timeline-name">${escapeHtml(tutor.name)}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                todayCard.innerHTML = `
+                    <div class="today-header">
+                        <span class="today-icon">📅</span>
+                        <span class="today-title">Schedule for ${todayName}</span>
+                        <span class="today-count">${schedule.length} Session${schedule.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="timeline">
+                        ${timelineItems}
+                    </div>
+                `;
+            }
+
+            // Show schedule and hide loading
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('scheduleContainer').style.display = 'block';
+        }
+
+        // Update statistics
+        function updateTodayStats(schedule) {
+            const totalSessions = schedule.length;
+            document.getElementById('totalToday').textContent = totalSessions;
+
+            if (totalSessions === 0) {
+                document.getElementById('firstSession').textContent = '-';
+                document.getElementById('lastSession').textContent = '-';
+                document.getElementById('totalHours').textContent = '0';
+                return;
+            }
+
+            // Sort by time
+            const sorted = [...schedule].sort((a, b) => {
+                return (a.hourFrom || '').localeCompare(b.hourFrom || '');
+            });
+
+            document.getElementById('firstSession').textContent = sorted[0].hourFrom || '-';
+            document.getElementById('lastSession').textContent = sorted[sorted.length - 1].hourTo || '-';
+
+            // Calculate total hours (simplified)
+            let totalHours = schedule.length; // Assuming 1 hour per session for demo
+            document.getElementById('totalHours').textContent = totalHours;
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-refresh every 30 seconds
+        let refreshInterval;
+        
+        function startAutoRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(fetchTodaySchedule, 30000);
+        }
+
+        // Initial fetch
+        fetchTodaySchedule();
+        startAutoRefresh();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) clearInterval(refreshInterval);
+        });
+    </script>
+</body>
+</html>

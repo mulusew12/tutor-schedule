@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Tutor · axios backend</title>
+    <!-- clean, modern, visually calm CSS · no external dependencies -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f1f9ff 0%, #e1eef9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            margin: 0;
+        }
+
+        /* main card container — soft & airy */
+        .form-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 2.5rem;
+            padding: 2.5rem 2.2rem;
+            max-width: 680px;
+            width: 100%;
+            box-shadow: 0 30px 50px -25px rgba(0, 60, 100, 0.4),
+                        0 10px 20px -5px rgba(0, 32, 64, 0.08),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .form-card:hover {
+            box-shadow: 0 35px 55px -20px rgba(18, 94, 151, 0.5), inset 0 1px 3px #ffffff;
+        }
+
+        /* main heading */
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 600;
+            color: #0f3b5c;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(115deg, #175f89, #0b3f5e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            padding-right: 0.5rem;
+        }
+
+        /* subtle underline effect */
+        .title-wrapper {
+            border-bottom: 3px solid rgba(77, 166, 235, 0.25);
+            padding-bottom: 0.6rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .title-wrapper::before {
+            content: "🧑‍🏫";
+            font-size: 2rem;
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.05));
+        }
+
+        /* form structure */
+        .tutor-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        /* form row groups (label + input) */
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .form-row label {
+            font-size: 1rem;
+            font-weight: 540;
+            color: #1b4d6b;
+            letter-spacing: 0.3px;
+            margin-left: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* icon style for labels (soft) */
+        .form-row label::before {
+            opacity: 0.7;
+            font-size: 1.2rem;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+        }
+
+        .form-row:nth-child(1) label::before { content: "👤 "; }
+        .form-row:nth-child(2) label::before { content: "📚 "; }
+        .form-row:nth-child(3) label::before { content: "📅 "; }
+        /* for the hour row we handle separately inside */
+        .hour-row .label-group::before {
+            content: "⏰ ";
+            font-size: 1.2rem;
+            opacity: 0.7;
+            margin-right: 6px;
+        }
+
+        /* base input style */
+        input, select {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #d7e7f3;
+            border-radius: 2rem;
+            padding: 0.9rem 1.5rem;
+            font-size: 1.05rem;
+            outline: none;
+            transition: all 0.2s ease;
+            color: #0f3d5e;
+            font-weight: 450;
+            box-shadow: 0 2px 6px rgba(0, 30, 60, 0.03);
+            width: 100%;
+        }
+
+        input:focus, select:focus {
+            border-color: #6fb6e9;
+            background: #ffffff;
+            box-shadow: 0 6px 14px rgba(37, 115, 180, 0.15);
+            transform: scale(1.01);
+        }
+
+        input::placeholder {
+            color: #99bbd5;
+            font-weight: 300;
+            font-size: 0.95rem;
+        }
+
+        /* special layout for hour group (from – to) */
+        .hour-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.8rem 0.5rem;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 0.8rem 1rem 0.8rem 1.2rem;
+            border-radius: 3rem;
+            border: 1px solid rgba(180, 212, 240, 0.6);
+            backdrop-filter: blur(2px);
+        }
+
+        .hour-group .label-from, .hour-group .label-to {
+            font-weight: 500;
+            color: #215e83;
+            font-size: 1.1rem;
+            margin: 0 0.1rem;
+        }
+
+        .hour-group .label-to {
+            margin-left: 0.2rem;
+        }
+
+        .hour-group input {
+            width: auto;
+            flex: 1 1 130px;
+            min-width: 110px;
+            background: white;
+            border: 1px solid #c7def2;
+            padding: 0.7rem 1.2rem;
+            border-radius: 2.5rem;
+            font-size: 1rem;
+        }
+
+        .hour-group input:focus {
+            border-color: #4699da;
+        }
+
+        /* submit button — big, smooth, friendly */
+        .submit-btn {
+            margin-top: 1.2rem;
+            background: linear-gradient(115deg, #2679b5, #1c5f8e);
+            border: none;
+            border-radius: 3rem;
+            padding: 1rem 2rem;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            cursor: pointer;
+            box-shadow: 0 14px 22px -12px #1b5f82, 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.4px;
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(115deg, #328ccf, #226ba0);
+            transform: scale(1.02) translateY(-2px);
+            box-shadow: 0 22px 28px -14px #1f6190;
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98) translateY(2px);
+            box-shadow: 0 8px 16px -6px #13415a;
+            background: linear-gradient(115deg, #1c68a0, #16547c);
+        }
+
+        .submit-btn::after {
+            content: " ➔";
+            font-size: 1.5rem;
+            opacity: 0.9;
+        }
+
+        /* helper line / note */
+        .field-note {
+            font-size: 0.9rem;
+            color: #5688aa;
+            margin-left: 1rem;
+            margin-top: 0.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .field-note span {
+            opacity: 0.6;
+        }
+
+        /* better spacing for the "Day" row */
+        .form-row {
+            margin-bottom: 0.2rem;
+        }
+
+        /* make hour row visually consistent */
+        .hour-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-top: 0.4rem;
+        }
+
+        .hour-row .label-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 1rem;
+            font-weight: 540;
+            color: #1b4d6b;
+            margin-left: 0.5rem;
+        }
+
+        /* small validation feedback styling */
+        .error-message {
+            color: #c3515c;
+            font-size: 0.85rem;
+            margin-left: 1rem;
+            margin-top: 0.2rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 230, 230, 0.5);
+            padding: 0.2rem 1rem;
+            border-radius: 20px;
+            width: fit-content;
+            backdrop-filter: blur(2px);
+        }
+
+        .error-message::before {
+            content: "⚠️";
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        input.invalid-field, select.invalid-field {
+            border-color: #e1a1a8;
+            background-color: #fff7f8;
+        }
+
+        /* thank you / success message */
+        .success-message {
+            background: #d7f0e6;
+            border-radius: 3rem;
+            padding: 0.8rem 1.8rem;
+            color: #1b6b5c;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-top: 1.5rem;
+            border: 1px solid #b2dfd0;
+            font-size: 1.05rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .success-message::before {
+            content: "✓";
+            background: #1b8f77;
+            color: white;
+            font-weight: bold;
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 22px;
+            font-size: 1rem;
+        }
+
+        /* error message from axios */
+        .axios-error-message {
+            background: #ffe1de;
+            border-radius: 3rem;
+            padding: 0.8rem 1.8rem;
+            color: #b13e3e;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-top: 1.5rem;
+            border: 1px solid #fbb5b5;
+            font-size: 1.05rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .axios-error-message::before {
+            content: "✗";
+            background: #c65c5c;
+            color: white;
+            font-weight: bold;
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 22px;
+            font-size: 1rem;
+        }
+
+        /* adjust for smaller screens */
+        @media (max-width: 500px) {
+            .form-card {
+                padding: 1.8rem 1.5rem;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .hour-group {
+                flex-direction: column;
+                align-items: flex-start;
+                border-radius: 2rem;
+            }
+            .hour-group input {
+                width: 100%;
+            }
+            .submit-btn {
+                font-size: 1.2rem;
+                padding: 0.9rem 1.5rem;
+            }
+        }
+    </style>
+    <!-- Axios CDN (simplest for HTML pages) -->
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="form-card">
+        <div class="title-wrapper">
+            <h1>Add Tutor</h1>
+        </div>
+
+        <!-- Updated action to match your backend API endpoint -->
+        <form class="tutor-form" id="tutorForm" action="http://localhost:5000/api/add" method="POST">
+            <!-- name field -->
+            <div class="form-row">
+                <label for="name">Full name</label>
+                <input type="text" id="name" name="name" placeholder="e.g. Alex Rivera" required>
+                <div class="error-message" id="nameError" style="display: none;">Name is required</div>
+            </div>
+
+            <!-- subject field -->
+            <div class="form-row">
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="subject" placeholder="e.g. Mathematics, Physics" required>
+                <div class="error-message" id="subjectError" style="display: none;">Subject is required</div>
+            </div>
+
+            <!-- day field - Updated to dropdown to match enum in your model -->
+            <div class="form-row">
+                <label for="day">Day of week</label>
+                <select id="day" name="day" required>
+                    <option value="" disabled selected>Select a day</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+                <div class="error-message" id="dayError" style="display: none;">Day is required</div>
+            </div>
+
+            <!-- hour from / to -->
+            <div class="hour-row">
+                <span class="label-group">Hour (from – to)</span>
+                <div class="hour-group">
+                    <input type="text" id="fromHour" name="hourFrom" placeholder="9:30 AM" required>
+                    <span class="label-to">to</span>
+                    <input type="text" id="toHour" name="hourTo" placeholder="11:45 AM" required>
+                </div>
+                <div class="field-note">
+                    <span>ⓘ</span> use format like "2:00 PM"
+                </div>
+                <div class="error-message" id="hourError" style="display: none;">Both start and end time required</div>
+            </div>
+
+            <!-- submit button -->
+            <button class="submit-btn" type="submit" id="submitBtn">Add Tutor</button>
+        </form>
+
+        <!-- container for dynamic messages (success/error from axios) -->
+        <div id="messageContainer"></div>
+
+        <!-- subtle footer -->
+        <div style="margin-top: 1.8rem; text-align: center; opacity: 0.5; font-size: 0.8rem; color: #205882; border-top: 1px dashed #c1ddef; padding-top: 1rem;">
+            ⚡ using axios · POST to http://localhost:5000/api/add
+        </div>
+    </div>
+
+    <!-- ========== JAVASCRIPT with AXIOS (removed the import line) ========== -->
+    <script>
+        (function() {
+            'use strict';
+
+            // Get DOM elements
+            const form = document.getElementById('tutorForm');
+            const nameInput = document.getElementById('name');
+            const subjectInput = document.getElementById('subject');
+            const dayInput = document.getElementById('day');
+            const fromHourInput = document.getElementById('fromHour');
+            const toHourInput = document.getElementById('toHour');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // error message spans
+            const nameError = document.getElementById('nameError');
+            const subjectError = document.getElementById('subjectError');
+            const dayError = document.getElementById('dayError');
+            const hourError = document.getElementById('hourError');
+
+            // container for axios feedback
+            const messageContainer = document.getElementById('messageContainer');
+
+            // Base URL for your backend
+            const BASE_URL = 'http://localhost:5000';
+
+            // helper to hide all error messages initially
+            function hideAllErrors() {
+                nameError.style.display = 'none';
+                subjectError.style.display = 'none';
+                dayError.style.display = 'none';
+                hourError.style.display = 'none';
+
+                [nameInput, subjectInput, dayInput, fromHourInput, toHourInput].forEach(inp => {
+                    inp.classList.remove('invalid-field');
+                });
+            }
+
+            // remove existing axios message
+            function clearMessage() {
+                messageContainer.innerHTML = '';
+            }
+
+            // show field error
+            function showError(errorElement, inputElement, message) {
+                errorElement.textContent = message || errorElement.textContent;
+                errorElement.style.display = 'flex';
+                if (inputElement) inputElement.classList.add('invalid-field');
+            }
+
+            // validate a single text field (non-empty)
+            function validateTextInput(value, inputElement, errorElement, fieldName) {
+                if (!value || value.trim() === '') {
+                    showError(errorElement, inputElement, `${fieldName} is required`);
+                    return false;
+                } else {
+                    errorElement.style.display = 'none';
+                    inputElement.classList.remove('invalid-field');
+                    return true;
+                }
+            }
+
+            // validate select field
+            function validateSelect(value, inputElement, errorElement, fieldName) {
+                if (!value || value === '') {
+                    showError(errorElement, inputElement, `${fieldName} is required`);
+                    return false;
+                } else {
+                    errorElement.style.display = 'none';
+                    inputElement.classList.remove('invalid-field');
+                    return true;
+                }
+            }
+
+            // validate hour fields (both filled)
+            function validateHours() {
+                const fromVal = fromHourInput.value.trim();
+                const toVal = toHourInput.value.trim();
+                let hourValid = true;
+
+                if (fromVal === '') {
+                    showError(hourError, fromHourInput, 'Start time is required');
+                    hourValid = false;
+                } else {
+                    fromHourInput.classList.remove('invalid-field');
+                }
+
+                if (toVal === '') {
+                    if (hourValid) { 
+                        showError(hourError, toHourInput, 'End time is required');
+                    } else {
+                        hourError.textContent = 'Both start and end time required';
+                        hourError.style.display = 'flex';
+                        toHourInput.classList.add('invalid-field');
+                    }
+                    hourValid = false;
+                } else {
+                    toHourInput.classList.remove('invalid-field');
+                }
+
+                if (fromVal !== '' && toVal !== '') {
+                    hourError.style.display = 'none';
+                    [fromHourInput, toHourInput].forEach(i => i.classList.remove('invalid-field'));
+                    return true;
+                }
+                return hourValid;
+            }
+
+            // real-time input clearing
+            function attachLiveHandlers() {
+                nameInput.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        nameError.style.display = 'none';
+                        this.classList.remove('invalid-field');
+                    }
+                });
+                subjectInput.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        subjectError.style.display = 'none';
+                        this.classList.remove('invalid-field');
+                    }
+                });
+                dayInput.addEventListener('change', function() {
+                    if (this.value !== '') {
+                        dayError.style.display = 'none';
+                        this.classList.remove('invalid-field');
+                    }
+                });
+
+                fromHourInput.addEventListener('input', function() {
+                    if (this.value.trim() !== '' && toHourInput.value.trim() !== '') {
+                        hourError.style.display = 'none';
+                    }
+                    this.classList.remove('invalid-field');
+                });
+                toHourInput.addEventListener('input', function() {
+                    if (this.value.trim() !== '' && fromHourInput.value.trim() !== '') {
+                        hourError.style.display = 'none';
+                    }
+                    this.classList.remove('invalid-field');
+                });
+            }
+
+            // main form submit handler using axios
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();  // prevent default browser submission
+
+                // clear any old message
+                clearMessage();
+                // hide all errors
+                hideAllErrors();
+
+                // perform validation
+                const isNameValid = validateTextInput(nameInput.value, nameInput, nameError, 'Name');
+                const isSubjectValid = validateTextInput(subjectInput.value, subjectInput, subjectError, 'Subject');
+                const isDayValid = validateSelect(dayInput.value, dayInput, dayError, 'Day');
+                const isHourValid = validateHours();
+
+                if (!(isNameValid && isSubjectValid && isDayValid && isHourValid)) {
+                    const firstError = document.querySelector('.invalid-field');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return; // stop if validation fails
+                }
+
+                // --- validation passed --- prepare data for axios
+                const formData = {
+                    name: nameInput.value.trim(),
+                    subject: subjectInput.value.trim(),
+                    day: dayInput.value,
+                    hourFrom: fromHourInput.value.trim(),
+                    hourTo: toHourInput.value.trim()
+                };
+
+                console.log('Sending data:', formData); // Debug log
+
+                // visually disable button during request
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.7';
+
+                // --- send POST request with axios ---
+                axios.post(`${BASE_URL}/api/add`, formData, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(function (response) {
+                    // handle success
+                    console.log('Axios response:', response);
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'success-message';
+                    
+                    const tutorName = formData.name;
+                    successDiv.textContent = `✅ Tutor ${tutorName} added successfully!`;
+                    messageContainer.appendChild(successDiv);
+
+                    // Reset form
+                    form.reset();
+
+                    // auto remove success after 5 seconds
+                    setTimeout(() => {
+                        if (successDiv.parentNode) {
+                            successDiv.remove();
+                        }
+                    }, 5000);
+                })
+                .catch(function (error) {
+                    // handle error
+                    console.error('Axios error:', error);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'axios-error-message';
+                    
+                    let errorMsg = ' Server error.';
+                    if (error.response) {
+                        // server responded with error status
+                        errorMsg = ` ${error.response.status}: ${error.response.data.message || error.response.statusText}`;
+                    } else if (error.request) {
+                        // no response received
+                        errorMsg = ' Cannot connect to server. Make sure backend is running on port 5000.';
+                    } else {
+                        // other errors
+                        errorMsg = ` ${error.message}`;
+                    }
+                    
+                    errorDiv.textContent = `⚠️ Failed to add tutor:${errorMsg}`;
+                    messageContainer.appendChild(errorDiv);
+
+                    // auto remove error after 6 seconds
+                    setTimeout(() => {
+                        if (errorDiv.parentNode) {
+                            errorDiv.remove();
+                        }
+                    }, 6000);
+                })
+                .finally(function () {
+                    // re-enable button
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                });
+            });
+
+            // attach live handlers
+            attachLiveHandlers();
+
+            // initial hide all errors
+            hideAllErrors();
+        })();
+    </script>
+</body>
+</html>
