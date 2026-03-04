@@ -9,11 +9,14 @@ dotenv.config();
 
 const app = express();
 
+
+
 // Middleware
 app.use(cors()); // Enable CORS for frontend requests
 app.use(express.json()); // PARSE JSON BODIES (THIS WAS MISSING!)
 app.use(express.urlencoded({ extended: true }));
-
+const allowedOrigins = ['http://localhost:5000', 'https://frontend-gules-eight-30.vercel.app']; // FRONTEND URL
+app.use(cors({origin: allowedOrigins, credentials: true})); // CORS with credentials
 // MongoDB Connection
 const connectDB = async () => {
     try {
@@ -24,7 +27,6 @@ const connectDB = async () => {
         process.exit(1);
     }
 };
-
 connectDB();
 
 // Routes
